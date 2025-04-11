@@ -1,7 +1,8 @@
 # Standard Library Imports
 import os
 import csv
-from collections import defaultdict
+from collections import Counter, defaultdict
+from operator import itemgetter
 
 # Third-Party Library Imports
 from openpyxl import Workbook
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Local Application Imports
-import config
+import modules.config as config
 
 ### CSV ###
 
@@ -57,7 +58,7 @@ def build_daily_summary_sheet(ws, sales_data):
     # Setup headers
     ws.append(config.DAILY_SUMMARY_HEADERS)
 
-    # Setup dictionary for incremental values
+    # Setup dictionary for incrementing values
     daily_summary_temp = defaultdict(lambda: {
         "total_sales": 0.0,
         "units_sold": 0,
@@ -78,15 +79,16 @@ def build_daily_summary_sheet(ws, sales_data):
         ask_rate = float(row[5])
         
         # Sum up sales data and customer names
-        daily_summary_temp[current_day]["total_sales"] += total_sales
-        daily_summary_temp[current_day]["units_sold"] += units_sold
-        daily_summary_temp[current_day]["real_rate_total"] += real_rate
-        daily_summary_temp[current_day]["ask_rate_total"] += ask_rate
-        daily_summary_temp[current_day]["deals"] += 1
-        daily_summary_temp[current_day]["customers"].add(customer_name)
+        day_summary = daily_summary_temp[current_day]
+        day_summary["units_sold"] += units_sold
+        day_summary["real_rate_total"] += real_rate
+        day_summary["ask_rate_total"] += ask_rate
+        day_summary["deals"] += 1
+        day_summary["customers"].add(customer_name)
+        day_summary["total_sales"] += total_sales
 
         # Gather individual customer total sales and units sold
-        cust_data = daily_summary_temp[current_day]["customer_data"][customer_name]
+        cust_data = day_summary["customer_data"][customer_name]
         cust_data["sales"] += total_sales
         cust_data["units"] += units_sold
 
@@ -162,8 +164,113 @@ def build_daily_summary_sheet(ws, sales_data):
             if i in (1, 3, 4):
                 cell.number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
 
+def build_customer_summary_sheet(ws, sales_data):
+    ws.append(config.CUSTOMER_SUMMARY_REPORT_HEADERS)
+
+    # Setup dictionary for incrementing values
+    customer_summary_temp = defaultdict(lambda: {
+        "total_sales": 0.0,
+        "units_total": 0,
+        "deals": 0,
+        "rates": [],
+        "units": [],
+        "relationship": "",
+        "times_of_day": Counter(),
+        "locations": Counter()
+    })
+
+    # Build individual sales data
+    for row in sales_data[1:]:
+        customer_name = row[1]
+        units_sold = int(row[2])
+        total_sales = float(row[3])
+        real_rate = float(row[4])
+        location = row[6]
+        time_of_day = row[7]
+        relationship = row[8]
+
+        # Sum up sales data and customer names
+        customer = customer_summary_temp[customer_name]
+        customer["total_sales"] += total_sales
+        customer["units_total"] += units_sold
+        customer["deals"] += 1
+        customer["rates"].append(real_rate)
+        customer["units"].append(units_sold)
+        customer["relationship"] = relationship
+        customer["times_of_day"][time_of_day] += 1
+        customer["locations"][location] += 1
+
+    for name in sorted(customer_summary_temp):
+        data = customer_summary_temp[name]
+        avg_sale = data["total_sales"] / data["deals"]
+        avg_units = data["units_total"] / data["deals"]
+        avg_rate = sum(data["rates"]) / len(data["rates"])
+
+        # Sort time of day and location counts
+        sorted_times = sorted(data["times_of_day"].items(), key=itemgetter(1), reverse=True)
+        sorted_locs = sorted(data["locations"].items(), key=itemgetter(1), reverse=True)
+        formatted_times = ", ".join([f"{time} ({count})" for time, count in sorted_times])
+        formatted_locs = ", ".join([f"{loc} ({count})" for loc, count in sorted_locs])
+
+        ws.append([
+            name,
+            round(data["total_sales"], 2),
+            data["units_total"],
+            data["deals"],
+            round(avg_sale, 2),
+            round(avg_units, 2),
+            round(avg_rate, 2),
+            data["relationship"],
+            formatted_times,
+            formatted_locs
+        ])
+
+    # Set individual column widths
+    column_widths = [20, 14, 14, 12, 14, 14, 14, 16, 60, 100]
+    for i, width in enumerate(column_widths, start=1):
+        col_letter = get_column_letter(i)
+        ws.column_dimensions[col_letter].width = width
+
+    # Style the header row
+    for cell in ws[1]:
+        cell.font = Font(color=config.FONT_COLOR, bold=True)
+        cell.alignment = Alignment(horizontal="center")
+        cell.fill = PatternFill(
+            start_color=config.CELL_COLOR,
+            end_color=config.CELL_COLOR,
+            fill_type="solid"
+        )
+        cell.border = Border(
+            left=Side(style="thin", color=config.FONT_COLOR),
+            right=Side(style="thin", color=config.FONT_COLOR),
+            top=Side(style="thin", color=config.FONT_COLOR),
+            bottom=Side(style="thin", color=config.FONT_COLOR),
+        )
+
+    # Style the data rows
+    for row in ws.iter_rows(min_row=2):
+        for i, cell in enumerate(row):
+            cell.font = Font(color=config.FONT_COLOR)
+            cell.alignment = Alignment(horizontal="center")
+            cell.fill = PatternFill(
+                start_color=config.CELL_COLOR,
+                end_color=config.CELL_COLOR,
+                fill_type="solid"
+            )
+            cell.border = Border(
+                left=Side(style="thin", color=config.FONT_COLOR),
+                right=Side(style="thin", color=config.FONT_COLOR),
+                top=Side(style="thin", color=config.FONT_COLOR),
+                bottom=Side(style="thin", color=config.FONT_COLOR),
+            )
+            if i in (1, 4):  # "TOTAL SALES", "AVG SALE"
+                cell.number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
+            elif i in (5, 6):  # "AVG UNITS", "AVG RATE"
+                cell.number_format = '0.00'
+
+
 def build_raw_data_sheet(ws, sales_data):
-    ws.append(config.CUSTOMER_SUMMARY_HEADERS)
+    ws.append(config.RAW_DATA_REPORT_HEADERS)
 
     # Build individual sales data
     for row in sales_data[1:]:
@@ -175,6 +282,7 @@ def build_raw_data_sheet(ws, sales_data):
         ask_rate = row[5]
         location = row[6]
         time_of_day = row[7]
+        relationship_level = row[8]
 
         ws.append([
             int(current_day),
@@ -184,11 +292,12 @@ def build_raw_data_sheet(ws, sales_data):
             float(real_rate),
             float(ask_rate),
             location,
-            time_of_day
+            time_of_day,
+            relationship_level
         ])
 
     # Set individual column widths
-    column_widths = [8, 20, 16, 16, 14, 14, 16, 16]
+    column_widths = [8, 20, 16, 16, 14, 14, 16, 16, 20]
     for i, width in enumerate(column_widths, start=1):
         col_letter = get_column_letter(i)
         ws.column_dimensions[col_letter].width = width
@@ -226,17 +335,20 @@ def build_raw_data_sheet(ws, sales_data):
             )
             if i in (0, 2):
                 cell.alignment = Alignment(horizontal="center")
-            elif i in (3, 4, 5):
+            elif i in (3, 4, 5, 8):
                 cell.alignment = Alignment(horizontal="center")
                 cell.number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
 
 def export_spreadsheet():
     wb = Workbook()
     ws = wb.active
-    sales_data = load_or_create_list_csv(config.SALES_DATA_CSV, config.CUSTOMER_SUMMARY_HEADERS)
+    sales_data = load_or_create_list_csv(config.SALES_DATA_CSV, config.RAW_DATA_REPORT_HEADERS)
 
     ws.title = config.DAILY_SUMMARY_REPORT_NAME
     build_daily_summary_sheet(ws, sales_data)
+
+    customer_data_ws = wb.create_sheet(title=config.CUSTOMER_SUMMARY_REPORT_NAME)
+    build_customer_summary_sheet(customer_data_ws, sales_data)
 
     raw_data_ws = wb.create_sheet(title=config.RAW_DATA_REPORT_NAME)
     build_raw_data_sheet(raw_data_ws, sales_data)
@@ -272,19 +384,20 @@ def plot_column_over_days(df, column_name, title, y_label, output_filename, colo
     plt.ylabel(y_label)
     plt.grid(True)
     plt.tight_layout()
-    os.makedirs("figures", exist_ok=True)
-    plt.savefig(f"figures/{output_filename}")
+    plt.savefig(output_filename)
     plt.close()
+    print(f"{output_filename} exported successfully.")
 
 def export_figures():
     df = pd.read_excel(config.BUSINESS_REPORT, sheet_name=config.DAILY_SUMMARY_REPORT_NAME, engine="openpyxl")
+    os.makedirs("figures", exist_ok=True)
 
     plot_column_over_days(
         df,
         column_name="TOTAL SALES",
         title="Daily Sales Totals",
         y_label="Sales ($)",
-        output_filename="daily_sales_totals.png",
+        output_filename=config.SALES_TOTALS_PER_DAY,
         color="tab:blue"
     )
 
@@ -293,15 +406,15 @@ def export_figures():
         column_name="UNITS SOLD",
         title="Units Sold Per Day",
         y_label="Units",
-        output_filename="daily_units_sold.png",
+        output_filename=config.UNITS_SOLD_PER_DAY,
         color="tab:green"
     )
 
     plot_column_over_days(
         df,
         column_name="DEALS",
-        title="Number of Customers Per Day",
+        title="Number of Deals Per Day",
         y_label="Number of Deals",
-        output_filename="daily_deals.png",
+        output_filename=config.DEALS_PER_DAY,
         color="tab:orange"
     )

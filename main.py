@@ -7,11 +7,9 @@
 import os
 import time
 
-# Third-Party Library Imports
-
 # Local Application Imports
-import config
-import data_io as io
+import modules.config as config
+import modules.data_io as io
 
 ### Interface ###
 
@@ -66,7 +64,7 @@ def get_ask_rate():
         try:
             ask_rate = int(input("Enter the product asking price: "))
             if ask_rate < 30 or ask_rate > 100:
-                if get_yes_no(f"Asking price of {ask_rate} is unusual. Proceed? (y/n): ") == "n":
+                if get_yes_no(f"Asking price of ${ask_rate} is unusual. Proceed? (y/n): ") == "n":
                     continue
             return ask_rate
         except ValueError:
@@ -85,7 +83,7 @@ def add_sales_data_menu():
     while True:
         display_menu_title(MENU_OPTIONS[0])
         print(f"Current Day: {current_day}")
-        print(f"Asking Price: {ask_rate}")
+        print(f"Asking Price: ${ask_rate}")
 
         # Customer name
         while True:
@@ -112,9 +110,9 @@ def add_sales_data_menu():
         # Total sales
         while True:
             try:
-                total_sales = int(input("Total sales: "))
+                total_sales = int(input("Total sales: $"))
                 if total_sales < 35 or total_sales > 1000:
-                    if get_yes_no(f"{total_sales} is an unusual amount. Proceed? (y/n): ") == "n":
+                    if get_yes_no(f"${total_sales} is an unusual amount. Proceed? (y/n): ") == "n":
                         continue
                 break
             except ValueError:
@@ -132,7 +130,7 @@ def add_sales_data_menu():
             break
 
         # Time of day
-        print("Time of day options:")
+        print("Time of day:")
         for i, option in enumerate(config.TIME_OF_DAY_OPTIONS, start=1):
             print(f"- {i}: {option}")
         while True:
@@ -140,6 +138,21 @@ def add_sales_data_menu():
                 choice = int(input("Choice: "))
                 if 1 <= choice <= 4:
                     time_of_day = config.TIME_OF_DAY_OPTIONS[choice-1]
+                    break
+                else:
+                    handle_error("Invalid input.")
+            except ValueError:
+                handle_error("Invalid input.")
+
+        # Relationship
+        print("Relationship level:")
+        for i, option in enumerate(config.RELATIONSHIP_OPTIONS, start=0):
+            print(f"- {i}: {option}")
+        while True:
+            try:
+                choice = int(input("Choice: "))
+                if 0 <= choice <= 5:
+                    relationship_level = config.RELATIONSHIP_OPTIONS[choice]
                     break
                 else:
                     handle_error("Invalid input.")
@@ -159,6 +172,7 @@ def add_sales_data_menu():
             ask_rate,
             location,
             time_of_day,
+            relationship_level
         ]
         io.append_csv(config.SALES_DATA_CSV, export_data)
         sales_data.append(export_data)
@@ -169,7 +183,7 @@ def add_sales_data_menu():
 ### Initialization ###
 
 # Load or create CSV files
-sales_data = io.load_or_create_list_csv(config.SALES_DATA_CSV, config.CUSTOMER_SUMMARY_HEADERS)
+sales_data = io.load_or_create_list_csv(config.SALES_DATA_CSV, config.RAW_DATA_REPORT_HEADERS)
 customer_names = io.load_or_create_set_csv(config.CUSTOMER_NAMES_CSV, ["CUSTOMER NAME"])
 location_names = io.load_or_create_set_csv(config.LOCATION_NAMES_CSV, ["LOCATION"])
 
