@@ -14,6 +14,18 @@ import pandas as pd
 # Local Application Imports
 import modules.config as config
 
+### Utility ###
+
+def parse_products_string(products_string):
+    return [
+        [name, int(units), int(price)]
+        for entry in products_string.split("|") if entry
+        for name, units, price in [entry.split(":")]
+    ]
+
+def format_products_summary(parsed_products):
+    return ", ".join(f"{name} ({units})" for name, units, _ in parsed_products)
+
 ### CSV ###
 
 def load_or_create_list_csv(file_name, headers):
@@ -45,6 +57,13 @@ def load_or_create_set_csv(file_name, headers):
             print(f"{file_name} created.")
         return set()
     
+def write_csv(file_name, rows, headers=None):
+    with open(file_name, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        if headers:
+            writer.writerow(headers)
+        writer.writerows(rows)
+    
 def append_csv(file_name, data):
     with open(file_name, mode="a", newline="") as file:
         writer = csv.writer(file)
@@ -63,8 +82,8 @@ def build_daily_summary_sheet(ws, sales_data):
         "total_sales": 0.0,
         "units_sold": 0,
         "real_rate_total": 0.0,
-        "ask_rate_total": 0.0,
         "deals": 0,
+        "products": Counter(),
         "customers": set(),
         "customer_data": defaultdict(lambda: {"sales": 0.0, "units": 0})
     })
@@ -75,17 +94,21 @@ def build_daily_summary_sheet(ws, sales_data):
         customer_name = row[1]
         units_sold = int(row[2])
         total_sales = float(row[3])
-        real_rate = float(row[4])
-        ask_rate = float(row[5])
+        products_string = row[6]
         
         # Sum up sales data and customer names
         day_summary = daily_summary_temp[current_day]
         day_summary["units_sold"] += units_sold
-        day_summary["real_rate_total"] += real_rate
-        day_summary["ask_rate_total"] += ask_rate
         day_summary["deals"] += 1
         day_summary["customers"].add(customer_name)
         day_summary["total_sales"] += total_sales
+
+        # Parse and gather product information
+        parsed_products = parse_products_string(products_string)
+        parsed_products.sort(key=lambda x: x[1], reverse=True)
+
+        for name, units, _ in parsed_products:
+            day_summary["products"][name] += units
 
         # Gather individual customer total sales and units sold
         cust_data = day_summary["customer_data"][customer_name]
@@ -94,10 +117,6 @@ def build_daily_summary_sheet(ws, sales_data):
 
     for day in sorted(daily_summary_temp):
         data = daily_summary_temp[day]
-
-        # Calculate average rates
-        avg_real_rate = data["real_rate_total"] / data["deals"]
-        avg_ask_rate = data["ask_rate_total"] / data["deals"]
 
         # Sort customer list by sales amount
         sorted_customers = sorted(
@@ -113,18 +132,20 @@ def build_daily_summary_sheet(ws, sales_data):
         ]
         customer_summary = ", ".join(formatted_customers)
 
+        sorted_products = sorted(data["products"].items(), key=lambda item: item[1], reverse=True)
+        product_summary = ", ".join(f"{name} ({units})" for name, units in sorted_products)
+
         ws.append([
             day,
             round(data["total_sales"], 2),
             data["units_sold"],
-            round(avg_real_rate, 2),
-            round(avg_ask_rate, 2),
             data["deals"],
-            customer_summary
+            product_summary,
+            customer_summary,
         ])
 
     # Set individual column widths
-    column_widths = [8, 16, 16, 24, 16, 14, 150]
+    column_widths = [8, 16, 10, 10, 50, 150]
     for i, width in enumerate(column_widths, start=1):
         col_letter = get_column_letter(i)
         ws.column_dimensions[col_letter].width = width
@@ -161,7 +182,7 @@ def build_daily_summary_sheet(ws, sales_data):
                 top=Side(style="thin", color=config.FONT_COLOR),
                 bottom=Side(style="thin", color=config.FONT_COLOR),
             )
-            if i in (1, 3, 4):
+            if i == 1:
                 cell.number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
 
 def build_customer_summary_sheet(ws, sales_data):
@@ -185,9 +206,9 @@ def build_customer_summary_sheet(ws, sales_data):
         units_sold = int(row[2])
         total_sales = float(row[3])
         real_rate = float(row[4])
-        location = row[6]
-        time_of_day = row[7]
-        relationship = row[8]
+        location = row[7]
+        time_of_day = row[8]
+        relationship = row[9]
 
         # Sum up sales data and customer names
         customer = customer_summary_temp[customer_name]
@@ -268,36 +289,54 @@ def build_customer_summary_sheet(ws, sales_data):
             elif i in (5, 6):  # "AVG UNITS", "AVG RATE"
                 cell.number_format = '0.00'
 
+def build_product_summary_sheet(ws, product_data):
+    ws.append(config.PRODUCT_SUMMARY_REPORT_HEADERS)
 
-def build_raw_data_sheet(ws, sales_data):
-    ws.append(config.RAW_DATA_REPORT_HEADERS)
+    # Build individual product data
+    for row in product_data[1:]:
+        product_name = row[0]
+        materials = row[1]
+        timeframe = int(row[2])
+        yield_amount = int(row[3])
+        sell_price = int(row[4])
 
-    # Build individual sales data
-    for row in sales_data[1:]:
-        current_day = row[0]
-        customer_name = row[1]
-        units_sold = row[2]
-        total_sales = row[3]
-        real_rate = row[4]
-        ask_rate = row[5]
-        location = row[6]
-        time_of_day = row[7]
-        relationship_level = row[8]
+        # Parse materials information
+        parsed_materials = [
+            {
+                "name": name,
+                "amount": int(amount),
+                "price": int(price)
+            }
+            for entry in materials.split("|")
+            for name, amount, price in [entry.split(":")]
+        ]
+
+        # Calculate profit margin per unit
+        # Sell price - (total materials cost / yield amount)
+        materials_cost = sum(m["amount"] * m["price"] for m in parsed_materials)
+        materials_cost_per_unit = materials_cost / yield_amount
+        profit_per_unit = sell_price - materials_cost_per_unit
+
+        # Calculate profit per batch and per hour
+        profit_per_batch = profit_per_unit * yield_amount
+        profit_per_hour = profit_per_batch / timeframe if timeframe > 0 else 0
+
+        # Format timeframe
+        timeframe_str = f"{timeframe} hour" if timeframe == 1 else f"{timeframe} hours"
 
         ws.append([
-            int(current_day),
-            customer_name,
-            int(units_sold),
-            float(total_sales),
-            float(real_rate),
-            float(ask_rate),
-            location,
-            time_of_day,
-            relationship_level
+            product_name,
+            round(materials_cost_per_unit, 2),
+            sell_price,
+            yield_amount,
+            timeframe_str,
+            round(profit_per_unit, 2),
+            round(profit_per_batch, 2),
+            round(profit_per_hour, 2)
         ])
 
     # Set individual column widths
-    column_widths = [8, 20, 16, 16, 14, 14, 16, 16, 20]
+    column_widths = [20, 20, 14, 8, 22, 12, 22, 22]
     for i, width in enumerate(column_widths, start=1):
         col_letter = get_column_letter(i)
         ws.column_dimensions[col_letter].width = width
@@ -333,9 +372,86 @@ def build_raw_data_sheet(ws, sales_data):
                 top=Side(style="thin", color=config.FONT_COLOR),
                 bottom=Side(style="thin", color=config.FONT_COLOR),
             )
-            if i in (0, 2):
+            if i in (1, 2, 5, 6, 7):
                 cell.alignment = Alignment(horizontal="center")
-            elif i in (3, 4, 5, 8):
+                cell.number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
+            else:
+                cell.alignment = Alignment(horizontal="center")
+
+
+def build_raw_data_sheet(ws, sales_data):
+    ws.append(config.RAW_DATA_REPORT_HEADERS)
+
+    # Build individual sales data
+    for row in sales_data[1:]:
+        current_day = row[0]
+        customer_name = row[1]
+        units_sold = row[2]
+        total_sales = row[3]
+        real_rate = row[4]
+        ask_rate = row[5]
+        products = row[6]
+        location = row[7]
+        time_of_day = row[8]
+        relationship_level = row[9]
+
+        parsed_products = parse_products_string(products)
+        parsed_products.sort(key=lambda x: x[1], reverse=True)
+        product_summary = ", ".join(f"{name} ({units})" for name, units, _ in parsed_products)
+
+        ws.append([
+            int(current_day),
+            customer_name,
+            int(units_sold),
+            float(total_sales),
+            float(real_rate),
+            float(ask_rate),
+            product_summary,
+            location,
+            time_of_day,
+            relationship_level
+        ])
+
+    # Set individual column widths
+    column_widths = [8, 20, 14, 18, 14, 12, 50, 24, 16, 20]
+    for i, width in enumerate(column_widths, start=1):
+        col_letter = get_column_letter(i)
+        ws.column_dimensions[col_letter].width = width
+
+    # Style the header row
+    for cell in ws[1]:
+        cell.font = Font(color=config.FONT_COLOR, bold=True)
+        cell.alignment = Alignment(horizontal="center")
+        cell.fill = PatternFill(
+            start_color=config.CELL_COLOR,
+            end_color=config.CELL_COLOR,
+            fill_type="solid"
+        )
+        cell.border = Border(
+            left=Side(style="thin", color=config.FONT_COLOR),
+            right=Side(style="thin", color=config.FONT_COLOR),
+            top=Side(style="thin", color=config.FONT_COLOR),
+            bottom=Side(style="thin", color=config.FONT_COLOR),
+        )
+
+    # Style the data rows
+    for row in ws.iter_rows(min_row=2):
+        for i, cell in enumerate(row):
+            cell.font = Font(color=config.FONT_COLOR)
+            cell.fill = PatternFill(
+                start_color=config.CELL_COLOR,
+                end_color=config.CELL_COLOR,
+                fill_type="solid"
+            )
+            cell.border = Border(
+                left=Side(style="thin", color=config.FONT_COLOR),
+                right=Side(style="thin", color=config.FONT_COLOR),
+                top=Side(style="thin", color=config.FONT_COLOR),
+                bottom=Side(style="thin", color=config.FONT_COLOR),
+            )
+            if i in (0, 2, 6, 7, 8, 9):
+                cell.alignment = Alignment(horizontal="center")
+            elif i in (3, 4, 5):
                 cell.alignment = Alignment(horizontal="center")
                 cell.number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
 
@@ -343,12 +459,17 @@ def export_spreadsheet():
     wb = Workbook()
     ws = wb.active
     sales_data = load_or_create_list_csv(config.SALES_DATA_CSV, config.RAW_DATA_REPORT_HEADERS)
+    product_data = load_or_create_list_csv(config.PRODUCT_DATA_CSV, config.PRODUCT_DATA_HEADERS)
+
 
     ws.title = config.DAILY_SUMMARY_REPORT_NAME
     build_daily_summary_sheet(ws, sales_data)
 
     customer_data_ws = wb.create_sheet(title=config.CUSTOMER_SUMMARY_REPORT_NAME)
     build_customer_summary_sheet(customer_data_ws, sales_data)
+
+    product_data_ws = wb.create_sheet(title=config.PRODUCT_SUMMARY_REPORT_NAME)
+    build_product_summary_sheet(product_data_ws, product_data)
 
     raw_data_ws = wb.create_sheet(title=config.RAW_DATA_REPORT_NAME)
     build_raw_data_sheet(raw_data_ws, sales_data)
@@ -403,7 +524,7 @@ def export_figures():
 
     plot_column_over_days(
         df,
-        column_name="UNITS SOLD",
+        column_name="UNITS",
         title="Units Sold Per Day",
         y_label="Units",
         output_filename=config.UNITS_SOLD_PER_DAY,

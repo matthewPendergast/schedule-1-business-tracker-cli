@@ -1,6 +1,6 @@
 # Overview
 
-This is a simple CLI business tracker developed in Python and designed for use in the game *Schedule 1*.
+This is a simple CLI business tracker developed in Python and designed for use with the game *Schedule 1*.
 
 ## Features
 
@@ -29,8 +29,8 @@ pip install -r requirements.txt
 
 ## Notes
 - This is a work-in-progress as I continue my *Schedule 1* playthrough.
-- Feel free to fork, modify, or adapt this for your own playthrough.
+- Feel free to fork, modify, or adapt this for your own use.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE.txt).

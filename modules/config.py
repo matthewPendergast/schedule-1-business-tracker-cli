@@ -1,8 +1,10 @@
 # CSV File names
 
 SALES_DATA_CSV = "csv/sales_data.csv"
+PRODUCT_DATA_CSV = "csv/product_data.csv"
 CUSTOMER_NAMES_CSV = "csv/customer_names.csv"
 LOCATION_NAMES_CSV = "csv/location_names.csv"
+PRODUCT_NAMES_CSV = "csv/product_names.csv"
 
 # Excel File names
 
@@ -23,6 +25,7 @@ CELL_COLOR = "000000"
 
 DAILY_SUMMARY_REPORT_NAME = "Daily Summary"
 CUSTOMER_SUMMARY_REPORT_NAME = "Customer Summary"
+PRODUCT_SUMMARY_REPORT_NAME = "Product Summary"
 RAW_DATA_REPORT_NAME = "Raw Data"
 
 # Table Headers
@@ -30,10 +33,9 @@ RAW_DATA_REPORT_NAME = "Raw Data"
 DAILY_SUMMARY_HEADERS = [
     "DAY",
     "TOTAL SALES",
-    "UNITS SOLD",
-    "REAL RATE",
-    "ASK RATE",
+    "UNITS",
     "DEALS",
+    "PRODUCTS SOLD",
     "CUSTOMERS"
 ]
 
@@ -50,6 +52,17 @@ CUSTOMER_SUMMARY_REPORT_HEADERS = [
     "LOCATIONS (DEALS)"
 ]
 
+PRODUCT_SUMMARY_REPORT_HEADERS = [
+    "PRODUCT",
+    "MATERIAL COST",
+    "SELL PRICE",
+    "YIELD",
+    "PRODUCTION TIME",
+    "MARGIN",
+    "PROFIT PER BATCH",
+    "PROFIT PER HOUR",
+]
+
 RAW_DATA_REPORT_HEADERS = [
     "DAY",
     "CUSTOMER",
@@ -57,16 +70,25 @@ RAW_DATA_REPORT_HEADERS = [
     "TOTAL SALES",
     "REAL RATE",
     "ASK RATE",
+    "PRODUCTS",
     "LOCATION",
     "TIME OF DAY",
     "RELATIONSHIP"
+]
+
+PRODUCT_DATA_HEADERS = [
+    "PRODUCT",
+    "MATERIALS",
+    "TIMEFRAME",
+    "YIELD",
+    "SELL PRICE"
 ]
 
 # Game Values
 
 TIME_OF_DAY_OPTIONS = [
     "6AM-12PM",
-    "12AM-6PM",
+    "12PM-6PM",
     "6PM-12AM",
     "12AM-6AM"
 ]
