@@ -209,7 +209,7 @@ def add_sales_data_menu():
         ]
         io.append_csv(config.SALES_DATA_CSV, export_data)
         sales_data.append(export_data)
-        
+
         products.clear()
 
         if get_yes_no("Add another sale? (y/n): ") == "n":
@@ -351,7 +351,7 @@ def select_product():
         handle_error("No products available.")
         return
     
-    product_list = list(product_names)
+    product_list = sorted(product_names)
     print("Select a product: ")
     for i, name in enumerate(product_list, start=1):
         print(f"- {i}: {name}")
@@ -450,28 +450,38 @@ def delete_product(selected_product):
 
 ### Initialization ###
 
-# Load or create CSV files
-sales_data = io.load_or_create_list_csv(config.SALES_DATA_CSV, config.RAW_DATA_REPORT_HEADERS)
-product_data = io.load_or_create_list_csv(config.PRODUCT_DATA_CSV, config.PRODUCT_DATA_HEADERS)
-customer_names = io.load_or_create_set_csv(config.CUSTOMER_NAMES_CSV, ["CUSTOMER NAME"])
-location_names = io.load_or_create_set_csv(config.LOCATION_NAMES_CSV, ["LOCATION"])
-product_names = io.load_or_create_set_csv(config.PRODUCT_NAMES_CSV, ["PRODUCT"])
+def initialize():
+    global sales_data, product_data, customer_names, location_names, product_names
+    sales_data = io.load_or_create_list_csv(config.SALES_DATA_CSV, config.RAW_DATA_REPORT_HEADERS)
+    product_data = io.load_or_create_list_csv(config.PRODUCT_DATA_CSV, config.PRODUCT_DATA_HEADERS)
+    customer_names = io.load_or_create_set_csv(config.CUSTOMER_NAMES_CSV, ["CUSTOMER NAME"])
+    location_names = io.load_or_create_set_csv(config.LOCATION_NAMES_CSV, ["LOCATION"])
+    product_names = io.load_or_create_set_csv(config.PRODUCT_NAMES_CSV, ["PRODUCT"])
 
 ### Main Loop ###
-while True:
-    display_menu_title(APP_NAME)
-    show_menu_options(MAIN_MENU_OPTIONS)
-    choice = input("Choice: ")
-    
-    if choice == "1":
-        add_sales_data_menu()
-    elif choice == "2":
-        manage_product_menu()
-    elif choice == "3":
-        clear_screen()
-        io.export_spreadsheet()
-        io.export_figures()
-        print("Closing program.")
-        break
-    else:
-        handle_error("Invalid input.")
+
+def main_menu_loop():
+    while True:
+        display_menu_title(APP_NAME)
+        show_menu_options(MAIN_MENU_OPTIONS)
+        choice = input("Choice: ")
+        
+        if choice == "1":
+            add_sales_data_menu()
+        elif choice == "2":
+            manage_product_menu()
+        elif choice == "3":
+            clear_screen()
+            io.export_spreadsheet()
+            io.export_figures()
+            print("Closing program.")
+            break
+        else:
+            handle_error("Invalid input.")
+
+if __name__ == "__main__":
+    try:
+        initialize()
+        main_menu_loop()
+    except KeyboardInterrupt:
+        print("\nClosing program.")

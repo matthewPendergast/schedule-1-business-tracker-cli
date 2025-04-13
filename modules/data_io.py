@@ -71,8 +71,6 @@ def append_csv(file_name, data):
 
 ### Excel ###
 
-sales_data = []
-
 def build_daily_summary_sheet(ws, sales_data):
     # Setup headers
     ws.append(config.DAILY_SUMMARY_HEADERS)
@@ -312,7 +310,6 @@ def build_product_summary_sheet(ws, product_data):
         ]
 
         # Calculate profit margin per unit
-        # Sell price - (total materials cost / yield amount)
         materials_cost = sum(m["amount"] * m["price"] for m in parsed_materials)
         materials_cost_per_unit = materials_cost / yield_amount
         profit_per_unit = sell_price - materials_cost_per_unit
