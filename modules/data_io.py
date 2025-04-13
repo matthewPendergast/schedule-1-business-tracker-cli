@@ -28,6 +28,25 @@ def format_products_summary(parsed_products):
 
 ### CSV ###
 
+def load_or_create_dict_csv(file_name, headers, key_field):
+    data = {}
+
+    if os.path.exists(file_name):
+        with open(file_name, mode="r", newline="") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                key = row.get(key_field)
+                if key:
+                    data[key] = {k: v for k, v in row.items() if k != key_field}
+        print(f"{file_name} imported.")
+        return data
+    else:
+        with open(file_name, mode="w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(headers)
+        print(f"{file_name} created.")
+        return {}
+
 def load_or_create_list_csv(file_name, headers):
     if os.path.exists(file_name):
         with open(file_name, mode="r", newline="") as file:

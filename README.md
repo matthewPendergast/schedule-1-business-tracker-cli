@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ## How to Use
 
 1. Run `main.py` in a terminal or inside VS Code.
-2. Use the numbered menu to add sales, product information, or export data.
+2. Use the numbered menu to add sales, set up product information, or export data.
 3. After exporting, check the `business_report.xlsx` and `figures/` folder for reports and charts.
 
 ## Notes

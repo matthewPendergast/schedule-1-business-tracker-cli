@@ -2,7 +2,7 @@
 
 SALES_DATA_CSV = "csv/sales_data.csv"
 PRODUCT_DATA_CSV = "csv/product_data.csv"
-CUSTOMER_NAMES_CSV = "csv/customer_names.csv"
+CUSTOMER_DATA_CSV = "csv/customer_data.csv"
 LOCATION_NAMES_CSV = "csv/location_names.csv"
 PRODUCT_NAMES_CSV = "csv/product_names.csv"
 
@@ -76,6 +76,13 @@ RAW_DATA_REPORT_HEADERS = [
     "RELATIONSHIP"
 ]
 
+CUSTOMER_DATA_HEADERS = [
+    "CUSTOMER",
+    "REGION",
+    "LOCATIONS",
+    "RELATIONSHIP"
+]
+
 PRODUCT_DATA_HEADERS = [
     "PRODUCT",
     "MATERIALS",
@@ -85,6 +92,15 @@ PRODUCT_DATA_HEADERS = [
 ]
 
 # Game Values
+
+CUSTOMER_REGIONS = [
+    "Northtown",
+    "Westville",
+    "Downtown",
+    "Docks",
+    "Suburbia",
+    "Uptown"
+]
 
 TIME_OF_DAY_OPTIONS = [
     "6AM-12PM",
