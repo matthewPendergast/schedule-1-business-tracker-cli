@@ -3,7 +3,6 @@
 SALES_DATA_CSV = "csv/sales_data.csv"
 PRODUCT_DATA_CSV = "csv/product_data.csv"
 CUSTOMER_DATA_CSV = "csv/customer_data.csv"
-LOCATION_NAMES_CSV = "csv/location_names.csv"
 PRODUCT_NAMES_CSV = "csv/product_names.csv"
 
 # Excel File names

@@ -1,6 +1,3 @@
-# MIT License
-# Copyright (c) 2025 Matthew Pendergast
-
 ### Imports ###
 
 # Standard Library Imports
@@ -80,26 +77,33 @@ def get_ask_rate():
 ### Menu Options ###
 
 # Add Sales Data Menu
-def add_sales_data_menu():
-    display_menu_title(MAIN_MENU_OPTIONS[0])
 
+def display_sales_data_menu_title(current_day=None, customer_name=None):
+    clear_screen()
+    display_menu_title(MAIN_MENU_OPTIONS[0])
+    if current_day:
+        print(f"= Current Day: {current_day} =")
+    if customer_name:
+        print(f"= Current Customer: {customer_name} =")
+
+def add_sales_data_menu():
     # Ensure user has setup at least one product
     if not product_names:
+        display_sales_data_menu_title()
+        print("No products registered. Please add a product to begin.")
         add_new_product()
-        clear_screen()
 
+    display_sales_data_menu_title()
     current_day = get_current_day()
     products = []
 
     while True:
-        display_menu_title(MAIN_MENU_OPTIONS[0])
-        print(f"Current Day: {current_day}")
-
         # Customer region
         while True:
+            display_sales_data_menu_title(current_day)
             show_menu_options(config.CUSTOMER_REGIONS, "Select a region")
             try:
-                choice = int(input("Customer region: "))
+                choice = int(input("Choice: "))
                 if 1 <= choice <= len(config.CUSTOMER_REGIONS):
                     customer_region = config.CUSTOMER_REGIONS[choice - 1]
                 else:
@@ -112,7 +116,7 @@ def add_sales_data_menu():
                 if data["REGION"].strip().lower() == customer_region.lower()
             ]
 
-            clear_screen()
+            display_sales_data_menu_title(current_day)
             customers.sort()
             print(f"Customers in {customer_region}:")
             for i, name in enumerate(customers, start=1):
@@ -121,7 +125,7 @@ def add_sales_data_menu():
 
             while True:
                 try:
-                    customer_choice = int(input("Select a customer: "))
+                    customer_choice = int(input("Choice: "))
                     if customer_choice == 0:
                         customer_name = input("Customer name: ")
                         if customer_name in customer_data:
@@ -148,6 +152,7 @@ def add_sales_data_menu():
 
         # Products sold
         while True:
+            display_sales_data_menu_title(current_day, customer_name)
             selected_product = select_product()
             if selected_product is None:
                 return
@@ -159,6 +164,9 @@ def add_sales_data_menu():
                     if units_sold < 0 or units_sold > 10:
                         if not get_yes_no(f"{units_sold} is an unusual amount. Proceed?"):
                             continue
+                    elif units_sold <= 0:
+                        handle_error("Please enter a valid amount for units sold.")
+                        continue
                     break
                 except ValueError:
                     handle_error("Please enter a valid integer for units sold.")
@@ -190,16 +198,16 @@ def add_sales_data_menu():
         # Location
         customer_locations = customer_data[customer_name].get("LOCATIONS", set())
         while True:
-            clear_screen()
+            display_sales_data_menu_title(current_day, customer_name)
             sorted_locations = sorted(customer_locations)
 
             if customer_locations:
-                show_menu_options(sorted_locations)
+                show_menu_options(sorted_locations, "Select a location")
             
             print("- 0: Add new location")
 
             try:
-                choice = int(input("Selection location: "))
+                choice = int(input("Choice: "))
                 if choice == 0:
                     new_location = input("Enter location name: ")
                     customer_locations.add(new_location)
@@ -215,7 +223,7 @@ def add_sales_data_menu():
         customer_data[customer_name]["LOCATIONS"] = customer_locations
 
         # Time of day
-        clear_screen()
+        display_sales_data_menu_title(current_day, customer_name)
         print("Time of day:")
         for i, option in enumerate(config.TIME_OF_DAY_OPTIONS, start=1):
             print(f"- {i}: {option}")
@@ -231,7 +239,7 @@ def add_sales_data_menu():
                 handle_error("Invalid input.")
 
         # Relationship
-        clear_screen()
+        display_sales_data_menu_title(current_day, customer_name)
         last_relationship_value = customer_data[customer_name].get("RELATIONSHIP", None)
         print("Relationship level:")
         for i, option in enumerate(config.RELATIONSHIP_OPTIONS, start=0):
@@ -292,6 +300,8 @@ def add_sales_data_menu():
         products.clear()
         
         clear_screen()
+        display_sales_data_menu_title(current_day, customer_name)
+        print("Sale complete!\n")
         if not get_yes_no("Add another sale?"):
             break
 
@@ -309,12 +319,15 @@ def manage_product_menu():
         choice = input("Choice: ")
 
         if choice == "1":
+            clear_screen()
             add_new_product()
         elif choice == "2":
+            clear_screen()
             selected_product = select_product()
             if selected_product:
                 edit_product(selected_product)
         elif choice == "3":
+            clear_screen()
             selected_product = select_product()
             if selected_product:
                 delete_product(selected_product)
@@ -324,7 +337,6 @@ def manage_product_menu():
             handle_error("Invalid input.")
 
 def add_new_product():
-    clear_screen()
     materials = []
     
     while True:
@@ -425,8 +437,6 @@ def add_new_product():
             break
 
 def select_product():
-    clear_screen()
-
     if not product_names:
         handle_error("No products available.")
         return
@@ -516,7 +526,7 @@ def delete_product(selected_product):
 
     # Modify product_data.csv
     updated_product_data = [
-        row for row in product_data if row[0] != selected_product
+        row for row in product_data[1:] if row[0] != selected_product
     ]
     io.write_csv(config.PRODUCT_DATA_CSV, updated_product_data, headers=config.PRODUCT_DATA_HEADERS)
 
@@ -531,7 +541,7 @@ def delete_product(selected_product):
 ### Initialization ###
 
 def initialize():
-    global sales_data, product_data, customer_data, location_names, product_names
+    global sales_data, product_data, customer_data, product_names
     sales_data = io.load_or_create_list_csv(config.SALES_DATA_CSV, config.RAW_DATA_REPORT_HEADERS)
     product_data = io.load_or_create_list_csv(config.PRODUCT_DATA_CSV, config.PRODUCT_DATA_HEADERS)
     customer_data = io.load_or_create_dict_csv(
@@ -539,7 +549,6 @@ def initialize():
         headers=config.CUSTOMER_DATA_HEADERS,
         key_field="CUSTOMER"
     )
-    location_names = io.load_or_create_set_csv(config.LOCATION_NAMES_CSV, ["LOCATION"])
     product_names = io.load_or_create_set_csv(config.PRODUCT_NAMES_CSV, ["PRODUCT"])
 
     # Convert locations string to set for in-memory use
