@@ -294,18 +294,17 @@ def add_sales_data_menu():
             locations_str = "|".join(sorted(data.get("LOCATIONS", [])))
             relationship = data.get("RELATIONSHIP", "")
             rows.append([name, data["REGION"], locations_str, relationship])
-
         io.write_csv(config.CUSTOMER_DATA_CSV, rows, headers=config.CUSTOMER_DATA_HEADERS)
 
         products.clear()
         
-        clear_screen()
         display_sales_data_menu_title(current_day, customer_name)
         print("Sale complete!\n")
         if not get_yes_no("Add another sale?"):
             break
 
 # Manage Product Menu
+
 def manage_product_menu():
     MENU_OPTIONS = [
         "Add New Product",

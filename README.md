@@ -16,7 +16,7 @@ This is a simple CLI business tracker developed in Python and designed for use w
 
 ## Installation
 
-Make sure you have Python 3 installed, then install the required dependencies with:
+Make sure you have Python 3.10+ installed, then install the required dependencies with:
 
 ```bash
 pip install -r requirements.txt

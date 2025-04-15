@@ -301,9 +301,9 @@ def build_customer_summary_sheet(ws, sales_data):
                 top=Side(style="thin", color=config.FONT_COLOR),
                 bottom=Side(style="thin", color=config.FONT_COLOR),
             )
-            if i in (1, 4):  # "TOTAL SALES", "AVG SALE"
+            if i in (1, 4):
                 cell.number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
-            elif i in (5, 6):  # "AVG UNITS", "AVG RATE"
+            elif i in (5, 6):
                 cell.number_format = '0.00'
 
 def build_product_summary_sheet(ws, product_data):
