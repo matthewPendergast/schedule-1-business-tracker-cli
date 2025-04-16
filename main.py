@@ -339,82 +339,12 @@ def add_new_product():
     materials = []
     
     while True:
-        # Product name
-        while True:
-            product_name = input("Product Name: ")
-            if product_name in product_names:
-                handle_error("Product already exists.")
-                return
-            else:
-                io.append_csv(config.PRODUCT_NAMES_CSV, [product_name])
-                product_names.add(product_name)
-                break
-        
-        # Required materials
-        while True:
-            material_name = input("Enter a required material/ingredient: ").replace(":", "").replace("|", "")
-            # Material price
-            while True:
-                try:
-                    material_price = int(input(f"Enter price of 1 unit of {material_name}: $"))
-                    break
-                except ValueError:
-                    handle_error("Please enter a valid integer for material price.")
-            # Material amount
-            while True:
-                try:
-                    material_amount = int(input(f"Enter required amount of {material_name}: "))
-                    if material_amount > 10:
-                        if not get_yes_no(f"{material_amount} is an unusual amount. Proceed?"):
-                            continue
-                    elif material_amount < 1:
-                        handle_error("Please enter a valid integer for required amount.")
-                        continue
-                    break
-                except ValueError:
-                    handle_error("Please enter a valid integer for required amount.")
-            materials.append([material_name, material_amount, material_price])
-            if not get_yes_no("Add another material/ingredient?"):
-                break
-        
-        # Production timeframe
-        while True:
-            try:
-                timeframe = int(input("Enter total time (hours) to produce yield: "))
-                if timeframe < 1:
-                    handle_error("Please enter a valid integer for total time.")
-                    continue
-                elif timeframe > 24:
-                    if not get_yes_no(f"{timeframe} hours is an unusual amount. Proceed?"):
-                        continue
-                break
-            except ValueError:
-                handle_error("Please enter a valid integer for total time.")
-        
-        # Yield amount
-        while True:
-            try:
-                yield_amount = int(input("Enter yield amount per batch: "))
-                if yield_amount < 1:
-                    handle_error("Please enter a valid integer for yield amount.")
-                    continue
-                elif yield_amount > 12:
-                    if not get_yes_no(f"{yield_amount} units is an unusual amount. Proceed?"):
-                        continue
-                break
-            except ValueError:
-                handle_error("Please enter a valid integer for yield amount.")
-
-        # Sell price
-        while True:
-            try:
-                sell_price = int(input("Enter sell price per unit: $"))
-                if sell_price < 30 or sell_price > 500:
-                    if not get_yes_no(f"${sell_price} is an unusual amount. Proceed?"):
-                        continue
-                break
-            except ValueError:
-                handle_error("Please enter a valid integer for sell price.")
+        # Set product information
+        product_name = set_product_name()
+        materials = set_product_materials(materials)
+        timeframe = set_product_timeframe()
+        yield_amount = set_product_yield_amount()
+        sell_price = set_product_price()
 
         # Serialize material information
         materials_string = "|".join(
@@ -434,6 +364,112 @@ def add_new_product():
 
         if not get_yes_no("Add another product?"):
             break
+
+def set_product_name(current_name=None):
+    prompt = "Product Name: "
+    if current_name is not None:
+        prompt = "- New product name: "
+
+    while True:
+            product_name = input(prompt)
+            if product_name in product_names:
+                handle_error("Product already exists.")
+                return
+            else:
+                io.append_csv(config.PRODUCT_NAMES_CSV, [product_name])
+                product_names.add(product_name)
+                break
+
+    return product_name
+
+def set_product_materials(materials):
+    while True:
+        material_name = input("Enter a required material/ingredient: ").replace(":", "").replace("|", "")
+        # Material price
+        while True:
+            try:
+                material_price = int(input(f"Enter price of 1 unit of {material_name}: $"))
+                break
+            except ValueError:
+                handle_error("Please enter a valid integer for material price.")
+        # Material amount
+        while True:
+            try:
+                material_amount = int(input(f"Enter required amount of {material_name}: "))
+                if material_amount > 10:
+                    if not get_yes_no(f"{material_amount} is an unusual amount. Proceed?"):
+                        continue
+                elif material_amount < 1:
+                    handle_error("Please enter a valid integer for required amount.")
+                    continue
+                break
+            except ValueError:
+                handle_error("Please enter a valid integer for required amount.")
+        materials.append([material_name, material_amount, material_price])
+        if not get_yes_no("Add another material/ingredient?"):
+            break
+
+    return materials
+
+def set_product_timeframe(current_timeframe=None):
+    prompt = "Enter total time (hours) to produce yield: "
+    if current_timeframe is not None:
+        print(f"- Current Timeframe (hours): {current_timeframe}")
+        prompt = "- New Timeframe (hours): "
+
+    while True:
+        try:
+            timeframe = int(input(prompt))
+            if timeframe < 1:
+                handle_error("Please enter a valid integer for total time.")
+                continue
+            elif timeframe > 24:
+                if not get_yes_no(f"{timeframe} hours is an unusual amount. Proceed?"):
+                    continue
+            break
+        except ValueError:
+            handle_error("Please enter a valid integer for total time.")
+
+    return timeframe
+
+def set_product_yield_amount(current_yield=None):
+    prompt = "Enter yield amount per batch: "
+    if current_yield is not None:
+        print(f"- Current Yield: {current_yield}")
+        prompt = "- New Yield: "
+    
+    while True:
+        try:
+            yield_amount = int(input(prompt))
+            if yield_amount < 1:
+                handle_error("Please enter a valid integer for yield amount.")
+                continue
+            elif yield_amount > 12:
+                if not get_yes_no(f"{yield_amount} units is an unusual amount. Proceed?"):
+                    continue
+            break
+        except ValueError:
+            handle_error("Please enter a valid integer for yield amount.")
+        
+    return yield_amount
+
+def set_product_price(current_price=None):
+    prompt = "Enter sell price per unit: $"
+    if current_price is not None:
+        print(f"- Current Price: ${current_price}")
+        prompt = "- New Price: $"
+
+    while True:
+        try:
+            product_price = int(input(prompt))
+            if product_price < 30 or product_price > 500:
+                if not get_yes_no(f"{product_price} is an unusual amount. Proceed?"):
+                    continue
+            break
+        except ValueError:
+            handle_error("Please enter a valid integer for the sell price.")
+
+    return product_price    
 
 def select_product():
     if not product_names:
@@ -463,7 +499,11 @@ def select_product():
 
 def edit_product(selected_product):
     MENU_OPTIONS = [
-        "Edit Price"
+        "Edit Name",
+        "Edit Price",
+        "Edit Materials",
+        "Edit Timeframe",
+        "Edit Yield"
     ]
     clear_screen()
     while True:
@@ -473,11 +513,35 @@ def edit_product(selected_product):
 
         choice = input("Choice: ")
         if choice == "1":
+            edit_product_name(selected_product)
+            return
+        elif choice == "2":
             edit_product_price(selected_product)
+        elif choice == "3":
+            edit_product_materials(selected_product)
+        elif choice == "4":
+            edit_product_timeframe(selected_product)
+        elif choice == "5":
+            edit_product_yield_amount(selected_product)
         elif choice == "0":
             return
         else:
             handle_error("Invalid input.")
+
+def edit_product_name(selected_product):
+    clear_screen()
+    print(f"Selected Product: {selected_product}")
+    new_name = set_product_name(selected_product)
+
+    # Update the product names list
+    if selected_product in product_names:
+        product_names.remove(selected_product)
+    product_names.add(new_name)
+
+    # Update the relevant CSV files
+    updated_names = [[name] for name in sorted(product_names)]
+    io.write_csv(config.PRODUCT_NAMES_CSV, updated_names, headers=["PRODUCT"])
+    save_product_edit_changes(selected_product, 0, new_name)
 
 def edit_product_price(selected_product):
     clear_screen()
@@ -486,30 +550,47 @@ def edit_product_price(selected_product):
     for row in product_data:
         if row[0] == selected_product:
             current_price = int(row[4])
-            print(f"- Current Price: ${current_price}")
             break
+
+    new_price = set_product_price(current_price)
+    save_product_edit_changes(selected_product, 4, new_price)
+
+def edit_product_materials(selected_product):
+    clear_screen()
+    print(f"Selected Product: {selected_product}")
     
-    while True:
-        try:
-            new_price = int(input("- New Price: $"))
-            if new_price < 30 or new_price > 500:
-                if not get_yes_no(f"{new_price} is an unusual amount. Proceed?"):
-                    continue
-            break
-        except ValueError:
-            handle_error("Please enter a valid integer for the new price.")
-    
-    # Update in-memory list
+    new_materials = set_product_materials([])
+
+    # Serialize materials list
+    materials_string = "|".join(
+        f"{name}:{amount}:{price}" for name, amount, price in new_materials
+    )
+
+    save_product_edit_changes(selected_product, 1, materials_string)
+
+def edit_product_timeframe(selected_product):
+    clear_screen()
+    print(f"Selected Product: {selected_product}")
+
     for row in product_data:
         if row[0] == selected_product:
-            row[4] = new_price
+            current_timeframe = int(row[2])
             break
     
-    io.write_csv(config.PRODUCT_DATA_CSV, product_data, headers=config.PRODUCT_DATA_HEADERS)
+    new_timeframe = set_product_timeframe(current_timeframe)
+    save_product_edit_changes(selected_product, 2, new_timeframe)
 
-    print(f"{selected_product} price updated.")
-    time.sleep(1)
+def edit_product_yield_amount(selected_product):
     clear_screen()
+    print(f"Selected Product: {selected_product}")
+
+    for row in product_data:
+        if row[0] == selected_product:
+            current_yield = int(row[3])
+            break
+    
+    new_yield = set_product_yield_amount(current_yield)
+    save_product_edit_changes(selected_product, 3, new_yield)
 
 def delete_product(selected_product):
     clear_screen()
@@ -534,6 +615,22 @@ def delete_product(selected_product):
     product_data.extend(updated_product_data)
 
     print(f"{selected_product} deleted successfully.")
+    time.sleep(1)
+    clear_screen()
+
+def save_product_edit_changes(selected_product, row_number, new_value):
+    # Update in-memory list
+    for row in product_data:
+        if row[0] == selected_product:
+            row[row_number] = new_value
+            # Update name if changed
+            if row_number == 0:
+                selected_product = new_value
+            break
+    
+    io.write_csv(config.PRODUCT_DATA_CSV, product_data[1:], headers=config.PRODUCT_DATA_HEADERS)
+    
+    print(f"{selected_product} updated.")
     time.sleep(1)
     clear_screen()
 
