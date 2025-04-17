@@ -13,7 +13,8 @@ import modules.data_io as io
 APP_NAME = "Schedule 1 Business Tracker"
 
 MAIN_MENU_OPTIONS = [
-    "Add Sales Data",
+    "Add Individual Sales Data",
+    "Add Distributor Sales Data",
     "Manage Products",
     "Export & Exit"
 ]
@@ -39,68 +40,47 @@ def show_menu_options(options, title=None):
     for i, option in enumerate(options, start=1):
         print(f"- {i}: {option}")
 
-### Utility ###
-
 def get_yes_no(prompt=""):
     while True:
         try:
             choice = int(input(prompt + " (1 = Yes, 0 = No): "))
-            if choice == 1:
-                return True
-            elif choice == 0:
-                return False
-            else:
-                handle_error("Please enter 1 for 'yes' or 0 for 'no.")
+            match choice:
+                case 1:
+                    return True
+                case 0:
+                    return False
+                case _:
+                    handle_error("Please enter 1 for 'yes' or 0 for 'no.")
         except ValueError:
             handle_error("Please enter 1 for 'yes' or 0 for 'no.")
 
-def get_current_day():
-    while True:
-        try:
-            current_day = int(input("Enter the day number: "))
-            break
-        except ValueError:
-            handle_error("Please enter a valid integer for the day.")
-    return current_day
+### Add Individual Sales Data Menu ###
 
-def get_ask_rate():
-    while True:
-        try:
-            ask_rate = int(input("Enter the product asking price: "))
-            if ask_rate < 30 or ask_rate > 100:
-                if not get_yes_no(f"Asking price of ${ask_rate} is unusual. Proceed?"):
-                    continue
-            return ask_rate
-        except ValueError:
-            handle_error("Please enter a valid integer for the asking price.")
-
-### Menu Options ###
-
-# Add Sales Data Menu
-
-def display_sales_data_menu_title(current_day=None, customer_name=None):
+def display_sales_data_menu_title(menu_index=None, current_day=None, person_name=None):
     clear_screen()
-    display_menu_title(MAIN_MENU_OPTIONS[0])
+    character_type = "Customer" if menu_index == 0 else "Distributor"
+    if menu_index:
+        display_menu_title(MAIN_MENU_OPTIONS[menu_index])
     if current_day:
         print(f"= Current Day: {current_day} =")
-    if customer_name:
-        print(f"= Current Customer: {customer_name} =")
+    if person_name:
+        print(f"= Current {character_type}: {person_name} =")
 
 def add_sales_data_menu():
     # Ensure user has setup at least one product
     if not product_names:
-        display_sales_data_menu_title()
+        display_sales_data_menu_title(0)
         print("No products registered. Please add a product to begin.")
         add_new_product()
 
-    display_sales_data_menu_title()
+    display_sales_data_menu_title(0)
     current_day = get_current_day()
     products = []
 
     while True:
         # Customer region
         while True:
-            display_sales_data_menu_title(current_day)
+            display_sales_data_menu_title(0, current_day)
             show_menu_options(config.CUSTOMER_REGIONS, "Select a region")
             try:
                 choice = int(input("Choice: "))
@@ -116,7 +96,7 @@ def add_sales_data_menu():
                 if data["REGION"].strip().lower() == customer_region.lower()
             ]
 
-            display_sales_data_menu_title(current_day)
+            display_sales_data_menu_title(0, current_day)
             customers.sort()
             print(f"Customers in {customer_region}:")
             for i, name in enumerate(customers, start=1):
@@ -151,54 +131,16 @@ def add_sales_data_menu():
             break
 
         # Products sold
-        while True:
-            display_sales_data_menu_title(current_day, customer_name)
-            selected_product = select_product()
-            if selected_product is None:
-                return
-
-            # Units
-            while True:
-                try:
-                    units_sold = int(input("Units sold: "))
-                    if units_sold < 0 or units_sold > 10:
-                        if not get_yes_no(f"{units_sold} is an unusual amount. Proceed?"):
-                            continue
-                    elif units_sold <= 0:
-                        handle_error("Please enter a valid amount for units sold.")
-                        continue
-                    break
-                except ValueError:
-                    handle_error("Please enter a valid integer for units sold.")
-            
-            # Pull selected product's sell price
-            product_price = None
-            for row in product_data:
-                if row[0] == selected_product:
-                    product_price = int(row[4])
-                    break
-            if product_price is None:
-                handle_error(f"Could not find price for {selected_product}.")
-                return
-            products.append([selected_product, units_sold, product_price])
-            if not get_yes_no("Add another product?"):
-                break
+        display_sales_data_menu_title(0, current_day, customer_name)
+        products = get_products_sold([])
 
         # Total sales
-        while True:
-            try:
-                total_sales = int(input("Total sales: $"))
-                if total_sales < 30 or total_sales > 1000:
-                    if not get_yes_no(f"${total_sales} is an unusual amount. Proceed?"):
-                        continue
-                break
-            except ValueError:
-                handle_error("Please enter a valid integer for total sales.")
+        total_sales = get_total_sales()
 
         # Location
         customer_locations = customer_data[customer_name].get("LOCATIONS", set())
         while True:
-            display_sales_data_menu_title(current_day, customer_name)
+            display_sales_data_menu_title(0, current_day, customer_name)
             sorted_locations = sorted(customer_locations)
 
             if customer_locations:
@@ -223,7 +165,7 @@ def add_sales_data_menu():
         customer_data[customer_name]["LOCATIONS"] = customer_locations
 
         # Time of day
-        display_sales_data_menu_title(current_day, customer_name)
+        display_sales_data_menu_title(0, current_day, customer_name)
         print("Time of day:")
         for i, option in enumerate(config.TIME_OF_DAY_OPTIONS, start=1):
             print(f"- {i}: {option}")
@@ -239,7 +181,7 @@ def add_sales_data_menu():
                 handle_error("Invalid input.")
 
         # Relationship
-        display_sales_data_menu_title(current_day, customer_name)
+        display_sales_data_menu_title(0, current_day, customer_name)
         last_relationship_value = customer_data[customer_name].get("RELATIONSHIP", None)
         print("Relationship level:")
         for i, option in enumerate(config.RELATIONSHIP_OPTIONS, start=0):
@@ -298,12 +240,156 @@ def add_sales_data_menu():
 
         products.clear()
         
-        display_sales_data_menu_title(current_day, customer_name)
+        display_sales_data_menu_title(0, current_day, customer_name)
         print("Sale complete!\n")
         if not get_yes_no("Add another sale?"):
             break
 
-# Manage Product Menu
+def get_current_day():
+    while True:
+        try:
+            current_day = int(input("Enter the day number: "))
+            break
+        except ValueError:
+            handle_error("Please enter a valid integer for the day.")
+    return current_day
+
+def get_products_sold(products):
+    while True:
+        selected_product = select_product()
+        if selected_product is None:
+            return
+
+        # Units
+        while True:
+            try:
+                units_sold = int(input("Units sold: "))
+                if units_sold < 0 or units_sold > 10:
+                    if not get_yes_no(f"{units_sold} is an unusual amount. Proceed?"):
+                        continue
+                elif units_sold <= 0:
+                    handle_error("Please enter a valid amount for units sold.")
+                    continue
+                break
+            except ValueError:
+                handle_error("Please enter a valid integer for units sold.")
+        
+        # Pull selected product's sell price
+        product_price = None
+        for row in product_data:
+            if row[0] == selected_product:
+                product_price = int(row[4])
+                break
+        if product_price is None:
+            handle_error(f"Could not find price for {selected_product}.")
+            return
+        
+        products.append([selected_product, units_sold, product_price])
+
+        if not get_yes_no("Add another product?"):
+            break
+
+    return products
+
+def get_total_sales():
+    while True:
+        try:
+            total_sales = int(input("Total sales: $"))
+            if total_sales < 30 or total_sales > 1000:
+                if not get_yes_no(f"${total_sales} is an unusual amount. Proceed?"):
+                    continue
+            break
+        except ValueError:
+            handle_error("Please enter a valid integer for total sales.")
+    return total_sales
+
+### Distributor Sales Data Menu ###
+
+def add_distributor_sales_data_menu():
+    clear_screen()
+    display_menu_title(MAIN_MENU_OPTIONS[1])
+
+    current_day = get_current_day()
+
+    while True:
+        display_sales_data_menu_title(1, current_day)
+        distributors = sorted(distributor_names)
+        show_menu_options(distributors, "Select a distributor")
+        print("- 0: Add new distributor")
+
+        # Distributor name
+        while True:
+            try:
+                choice = int(input("Choice: "))
+                if 1 <= choice <= len(distributors):
+                    selected_distributor = distributors[choice - 1]
+                    break
+                elif choice == 0:
+                    selected_distributor = input("Distributor name: ")
+                    if selected_distributor in distributor_names:
+                        handle_error("Distributor already exists.")
+                        continue
+                    elif not get_yes_no(f"Add {selected_distributor} to distributor list?"):
+                        continue
+                    else:
+                        io.append_csv(config.DISTRIBUTOR_NAMES_CSV, [selected_distributor])
+                        distributor_names.add(selected_distributor)
+                        break
+                else:
+                    handle_error("Invalid input.")
+            except ValueError:
+                handle_error("Please enter a valid integer.")
+
+        # Products
+        display_sales_data_menu_title(1, current_day, selected_distributor)
+        products = get_products_sold([])
+
+        # Sales
+        total_sales = get_total_sales()
+
+        if get_yes_no(f"Is {selected_distributor}'s cut already included?"):
+            gross_sales = int(total_sales / 0.8)
+            net_sales = total_sales
+        else:
+            gross_sales = total_sales
+            net_sales = int(total_sales * 0.8)
+
+        # Calculate real (actual) rate
+        total_units = sum(units for _, units, _ in products)
+        real_rate = round((gross_sales / total_units), 2)
+
+        # Calculate ask (expected) rate
+        total_ask_value = sum(units * price for _, units, price in products)
+        ask_rate = round(total_ask_value / total_units, 2)
+
+        # Serialize product information
+        products_string = "|".join(
+            f"{name}:{units}:{price}" for name, units, price in products
+        )
+
+        # Export sales data
+        export_data = [
+            current_day,
+            selected_distributor,
+            total_units,
+            gross_sales,
+            net_sales,
+            real_rate,
+            ask_rate,
+            products_string
+        ]
+
+        io.append_csv(config.DISTRIBUTOR_SALES_DATA_CSV, export_data)
+        distributor_sales_data.append(export_data)
+
+        products.clear()
+        
+        display_sales_data_menu_title(1, current_day, selected_distributor)
+        print("Distributor sales complete!\n")
+        if not get_yes_no("Add another distributor's sales?"):
+             break
+
+### Manage Product Menu ###
 
 def manage_product_menu():
     MENU_OPTIONS = [
@@ -315,25 +401,26 @@ def manage_product_menu():
     while True:
         display_menu_title(MAIN_MENU_OPTIONS[1])
         show_menu_options(MENU_OPTIONS)
-        choice = input("Choice: ")
 
-        if choice == "1":
-            clear_screen()
-            add_new_product()
-        elif choice == "2":
-            clear_screen()
-            selected_product = select_product()
-            if selected_product:
-                edit_product(selected_product)
-        elif choice == "3":
-            clear_screen()
-            selected_product = select_product()
-            if selected_product:
-                delete_product(selected_product)
-        elif choice == "4":
-            return
-        else:
-            handle_error("Invalid input.")
+        choice = int(input("Choice: "))
+        match choice:
+            case 1:
+                clear_screen()
+                add_new_product()
+            case 2:
+                clear_screen()
+                selected_product = select_product()
+                if selected_product:
+                    edit_product(selected_product)
+            case 3:
+                clear_screen()
+                selected_product = select_product()
+                if selected_product:
+                    delete_product(selected_product)
+            case 4:
+                return
+            case _:
+                handle_error("Invalid input.")
 
 def add_new_product():
     materials = []
@@ -511,22 +598,23 @@ def edit_product(selected_product):
         show_menu_options(MENU_OPTIONS)
         print("- 0: Cancel")
 
-        choice = input("Choice: ")
-        if choice == "1":
-            edit_product_name(selected_product)
-            return
-        elif choice == "2":
-            edit_product_price(selected_product)
-        elif choice == "3":
-            edit_product_materials(selected_product)
-        elif choice == "4":
-            edit_product_timeframe(selected_product)
-        elif choice == "5":
-            edit_product_yield_amount(selected_product)
-        elif choice == "0":
-            return
-        else:
-            handle_error("Invalid input.")
+        choice = int(input("Choice: "))
+        match choice:
+            case 1:
+                edit_product_name(selected_product)
+                return
+            case 2:
+                edit_product_price(selected_product)
+            case 3:
+                edit_product_materials(selected_product)
+            case 4:
+                edit_product_timeframe(selected_product)
+            case 5:
+                edit_product_yield_amount(selected_product)
+            case 0:
+                return
+            case _:
+                handle_error("Invalid input.")
 
 def edit_product_name(selected_product):
     clear_screen()
@@ -637,8 +725,9 @@ def save_product_edit_changes(selected_product, row_number, new_value):
 ### Initialization ###
 
 def initialize():
-    global sales_data, product_data, customer_data, product_names
+    global sales_data, distributor_sales_data, product_data, customer_data, product_names, distributor_names
     sales_data = io.load_or_create_list_csv(config.SALES_DATA_CSV, config.RAW_DATA_REPORT_HEADERS)
+    distributor_sales_data = io.load_or_create_list_csv(config.DISTRIBUTOR_SALES_DATA_CSV, config.RAW_DISTRIBUTOR_DATA_REPORT_HEADERS)
     product_data = io.load_or_create_list_csv(config.PRODUCT_DATA_CSV, config.PRODUCT_DATA_HEADERS)
     customer_data = io.load_or_create_dict_csv(
         file_name=config.CUSTOMER_DATA_CSV,
@@ -646,6 +735,7 @@ def initialize():
         key_field="CUSTOMER"
     )
     product_names = io.load_or_create_set_csv(config.PRODUCT_NAMES_CSV, ["PRODUCT"])
+    distributor_names = io.load_or_create_set_csv(config.DISTRIBUTOR_NAMES_CSV, ["DISTRIBUTOR"])
 
     # Convert locations string to set for in-memory use
     for customer, data in customer_data.items():
@@ -659,20 +749,23 @@ def main_menu_loop():
     while True:
         display_menu_title(APP_NAME)
         show_menu_options(MAIN_MENU_OPTIONS)
-        choice = input("Choice: ")
-        
-        if choice == "1":
-            add_sales_data_menu()
-        elif choice == "2":
-            manage_product_menu()
-        elif choice == "3":
-            clear_screen()
-            io.export_spreadsheet()
-            io.export_figures()
-            print("Closing program.")
-            break
-        else:
-            handle_error("Invalid input.")
+
+        choice = int(input("Choice: "))
+        match choice:
+            case 1:
+                add_sales_data_menu()
+            case 2:
+                add_distributor_sales_data_menu()
+            case 3:
+                manage_product_menu()
+            case 4:
+                clear_screen()
+                io.export_spreadsheet()
+                io.export_figures()
+                print("Closing program.")
+                break
+            case _:
+                handle_error("Invalid input.")
 
 if __name__ == "__main__":
     try:

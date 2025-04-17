@@ -1,9 +1,11 @@
 # CSV File names
 
 SALES_DATA_CSV = "csv/sales_data.csv"
+DISTRIBUTOR_SALES_DATA_CSV = "csv/distributor_sales_data.csv"
 PRODUCT_DATA_CSV = "csv/product_data.csv"
 CUSTOMER_DATA_CSV = "csv/customer_data.csv"
 PRODUCT_NAMES_CSV = "csv/product_names.csv"
+DISTRIBUTOR_NAMES_CSV = "csv/distributor_names.csv"
 
 # Excel File names
 
@@ -23,6 +25,7 @@ CELL_COLOR = "000000"
 # Table Names
 
 DAILY_SUMMARY_REPORT_NAME = "Daily Summary"
+DISTRIBUTOR_SUMMARY_REPORT_NAME = "Distributor Summary"
 CUSTOMER_SUMMARY_REPORT_NAME = "Customer Summary"
 PRODUCT_SUMMARY_REPORT_NAME = "Product Summary"
 RAW_DATA_REPORT_NAME = "Raw Data"
@@ -32,7 +35,11 @@ RAW_DATA_REPORT_NAME = "Raw Data"
 DAILY_SUMMARY_HEADERS = [
     "DAY",
     "TOTAL SALES",
-    "UNITS",
+    "MY SALES",
+    "DISTR SALES",
+    "TOTAL UNITS",
+    "MY UNITS",
+    "DISTR UNITS",
     "DEALS",
     "PRODUCTS SOLD",
     "CUSTOMERS"
@@ -60,6 +67,9 @@ PRODUCT_SUMMARY_REPORT_HEADERS = [
     "MARGIN",
     "PROFIT PER BATCH",
     "PROFIT PER HOUR",
+    "TOTAL SALES",
+    "UNITS SOLD",
+    "REAL RATE"
 ]
 
 RAW_DATA_REPORT_HEADERS = [
@@ -73,6 +83,17 @@ RAW_DATA_REPORT_HEADERS = [
     "LOCATION",
     "TIME OF DAY",
     "RELATIONSHIP"
+]
+
+RAW_DISTRIBUTOR_DATA_REPORT_HEADERS = [
+    "DAY",
+    "DISTRIBUTOR",
+    "UNITS SOLD",
+    "GROSS SALES",
+    "NET SALES",
+    "REAL RATE",
+    "ASK RATE",
+    "PRODUCTS"
 ]
 
 CUSTOMER_DATA_HEADERS = [
